@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AS TRADER'S | ہول سیل اسٹور</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f4;color:#202b25}
+header{background:#174c38;color:white;padding:22px 15px;text-align:center}
+header h1{margin:0;font-size:28px}
+header p{margin:9px 0 0}
+.wrap{max-width:1000px;margin:auto;padding:15px}
+.notice{background:#e5efe8;padding:12px;border-radius:10px;text-align:center}
+input,select,button{font:inherit;padding:11px;border-radius:8px;border:1px solid #ccc}
+button{cursor:pointer;background:#174c38;color:white;border:0}
+.controls{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+.controls input{flex:1;min-width:150px;background:white}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px #00000010}
+.photo{width:100%;height:155px;object-fit:contain;background:#edf1ed}
+.no-photo{height:155px;display:flex;align-items:center;justify-content:center;background:#edf1ed;color:#617268}
+.info{padding:11px}
+.info h3{margin:0 0 10px;font-size:16px}
+.price{font-size:14px;margin:7px 0}
+.wholesale{font-weight:bold;color:#167444;font-size:17px}
+.order{display:block;text-align:center;text-decoration:none;background:#16834c;color:white;padding:10px;border-radius:8px;margin-top:12px}
+.admin{background:white;padding:15px;border-radius:12px;margin:18px 0}
+.admin h2{font-size:19px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.formgrid input,.formgrid select{width:100%;min-width:0}
+.full{grid-column:1/-1}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.danger{background:#a52b2b}
+.secondary{background:#53645a}
+.hidden{display:none}
+footer{text-align:center;padding:22px;color:#647168}
+@media(min-width:650px){
+ .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .photo,.no-photo{height:210px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>AS TRADER'S</h1>
+  <p>کریانہ اینڈ جنرل اسٹور</p>
+  <p>سیت پور روڈ، چوک بہارشاہ</p>
+</header>
+
+<main class="wrap">
+  <p class="notice">معیاری اشیاء ہول سیل ریٹ پر دستیاب ہیں</p>
+
+  <div class="controls">
+    <input id="search" placeholder="سامان تلاش کریں..." oninput="render()">
+    <select id="category" onchange="render()">
+      <option value="">تمام کیٹیگریز</option>
+      <option>کریانہ</option>
+      <option>صابن اور لوشن</option>
+      <option>جنرل اسٹور</option>
+      <option>دیگر</option>
+    </select>
+  </div>
+
+  <div id="products" class="grid"></div>
+
+  <section class="admin">
+    <h2>دکاندار کا ایڈمن پینل</h2>
+    <p>نئی مصنوعات شامل کرنے یا ریٹ تبدیل کرنے کے لیے کھولیں۔</p>
+    <button onclick="adminLogin()">ایڈمن پینل کھولیں</button>
+
+    <div id="editor" class="hidden">
+      <hr>
+      <form id="productForm">
+        <div class="formgrid">
+          <input id="pname" placeholder="سامان کا نام" required>
+          <select id="pcat" required>
+            <option value="">کیٹیگری منتخب کریں</option>
+            <option>کریانہ</option>
+            <option>صابن اور لوشن</option>
+            <option>جنرل اسٹور</option>
+            <option>دیگر</option>
+          </select>
+          <input id="print" type="number" min="0" step="0.01"
+            placeholder="پرنٹ ریٹ (روپے)" required>
+          <input id="wholesale" type="number" min="0" step="0.01"
+            placeholder="ہول سیل ریٹ (روپے)" required>
+          <label class="full">سامان کی تصویر منتخب کریں
+            <input id="photo" type="file" accept="image/*">
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">سامان محفوظ کریں</button>
+          <button type="button" class="secondary" onclick="resetForm()">نیا آئٹم</button>
+          <button type="button" class="secondary" onclick="exportData()">بیک اپ ڈاؤن لوڈ</button>
+          <button type="button" class="secondary" onclick="importFile.click()">بیک اپ واپس لائیں</button>
+          <input id="importFile" type="file" accept=".json,application/json"
+            class="hidden" onchange="importData(event)">
+        </div>
+      </form>
+      <div id="manage"></div>
+      <p style="font-size:12px;color:#666">
+        یاد رکھیں: یہ ابتدائی ورژن اسی براؤزر میں ڈیٹا محفوظ کرتا ہے۔
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>AS TRADER'S · شکریہ کہ آپ نے ہم سے رابطہ کیا</footer>
+
+<script>
+const KEY = "asTradersProductsV1";
+const PHONE = "923448685385";
+const initialProducts = [
+  {id:1,name:"Care Winter Lotion Small",category:"صابن اور لوشن",
+   print:140,wholesale:100,image:""},
+  {id:2,name:"Care Winter Lotion Large",category:"صابن اور لوشن",
+   print:220,wholesale:175,image:""}
+];
+
+let products;
+try {
+  products = JSON.parse(localStorage.getItem(KEY)) || initialProducts;
+} catch(e) {
+  products = initialProducts;
+}
+let editId = null;
+let selectedImage = "";
+
+function saveData(){
+  try {
+    localStorage.setItem(KEY,JSON.stringify(products));
+    return true;
+  } catch(e) {
+    alert("ڈیٹا محفوظ نہیں ہو سکا۔ تصاویر چھوٹی کریں یا بیک اپ بنائیں۔");
+    return false;
+  }
+}
+
+function money(n){
+  return Number(n).toLocaleString("en-PK",{maximumFractionDigits:2});
+}
+
+function render(){
+  const q = document.getElementById("search").value.toLowerCase().trim();
+  const cat = document.getElementById("category").value;
+  const list = products.filter(p =>
+    p.name.toLowerCase().includes(q) &&
+    (!cat || p.category === cat)
+  );
+  document.getElementById("products").innerHTML = list.length ? list.map(p => `
+    <article class="card">
+      ${p.image
+        ? `<img class="photo" src="${p.image}" alt="سامان کی تصویر">`
+        : `<div class="no-photo">تصویر شامل نہیں</div>`}
+      <div class="info">
+        <h3>${esc(p.name)}</h3>
+        <div class="price">پرنٹ ریٹ: Rs. ${money(p.print)}</div>
+        <div class="wholesale">ہول سیل ریٹ: Rs. ${money(p.wholesale)}</div>
+        <a class="order" target="_blank" rel="noopener"
+          href="${waLink(p)}">WhatsApp پر آرڈر</a>
+      </div>
+    </article>
+  `).join("") : "<p>کوئی سامان نہیں ملا۔</p>";
+  renderManage();
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function waLink(p){
+  const msg = `السلام علیکم، مجھے یہ سامان چاہیے:
+${p.name}
+پرنٹ ریٹ: Rs. ${p.print}
+ہول سیل ریٹ: Rs. ${p.wholesale}
+براہ کرم دستیابی بتائیں۔`;
+  return "https://wa.me/"+PHONE+"?text="+encodeURIComponent(msg);
+}
+
+function adminLogin(){
+  if(!document.getElementById("editor").classList.contains("hidden")){
+    document.getElementById("editor").classList.add("hidden");
+    return;
+  }
+  const pin = prompt("ایڈمن PIN درج کریں۔ ابتدائی PIN: 1234");
+  if(pin === "1234"){
+    document.getElementById("editor").classList.remove("hidden");
+  } else {
+    alert("غلط PIN");
+  }
+}
+
+document.getElementById("productForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const file = document.getElementById("photo").files[0];
+  let image = selectedImage;
+
+  if(file){
+    if(file.size > 700*1024){
+      alert("تصویر 700 KB سے چھوٹی منتخب کریں۔");
+      return;
+    }
+    image = await new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const item = {
+    id: editId || Date.now(),
+    name: document.getElementById("pname").value.trim(),
+    category: document.getElementById("pcat").value,
+    print: Number(document.getElementById("print").value),
+    wholesale: Number(document.getElementById("wholesale").value),
+    image
+  };
+
+  if(!item.name || item.print < 0 || item.wholesale < 0) return;
+
+  const old = products;
+  products = editId
+    ? products.map(p=>p.id===editId?item:p)
+    : [...products,item];
+
+  if(saveData()){
+    resetForm();
+    render();
+    alert("سامان محفوظ ہوگیا!");
+  } else {
+    products = old;
+  }
+});
+
+function editProduct(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  editId = p.id;
+  selectedImage = p.image || "";
+  document.getElementById("pname").value = p.name;
+  document.getElementById("pcat").value = p.category;
+  document.getElementById("print").value = p.print;
+  document.getElementById("wholesale").value = p.wholesale;
+  document.getElementById("photo").value = "";
+  document.getElementById("pname").scrollIntoView({behavior:"smooth"});
+}
+
+function deleteProduct(id){
+  if(!confirm("کیا یہ سامان حذف کرنا ہے؟")) return;
+  const old = products;
+  products = products.filter(p=>p.id!==id);
+  if(saveData()) render();
+  else products = old;
+}
+
+function resetForm(){
+  editId = null;
+  selectedImage = "";
+  document.getElementById("productForm").reset();
+}
+
+function renderManage(){
+  const box = document.getElementById("manage");
+  if(!box || document.getElementById("editor").classList.contains("hidden")) return;
+  box.innerHTML = "<h3>موجودہ مصنوعات</h3>" + products.map(p=>`
+    <div style="border-top:1px solid #ddd;padding:10px 0">
+      <strong>${esc(p.name)}</strong>
+      <div>پرنٹ: Rs. ${money(p.print)} · ہول سیل: Rs. ${money(p.wholesale)}</div>
+      <div class="actions">
+        <button type="button" onclick="editProduct(${p.id})">تبدیل کریں</button>
+        <button type="button" class="danger" onclick="deleteProduct(${p.id})">حذف کریں</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(products,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "as-traders-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data) || !data.every(p =>
+        p && typeof p.name==="string" &&
+        Number.isFinite(Number(p.print)) &&
+        Number.isFinite(Number(p.wholesale))
+      )) throw Error();
+      if(confirm("موجودہ فہرست کی جگہ بیک اپ کی فہرست لائیں؟")){
+        const old = products;
+        products = data;
+        if(saveData()) render();
+        else products = old;
+      }
+    }catch(e){alert("یہ درست بیک اپ فائل نہیں ہے۔");}
+    event.target.value="";
+  };
+  reader.readAsText(file);
+}
+
+render();
+</script>
+</body>
+</html>
